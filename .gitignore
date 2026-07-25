@@ -1,2 +1,6 @@
-vswm
-vswm.o
+few
+few.o
+/few
+/few.o
+./few
+./few.o
