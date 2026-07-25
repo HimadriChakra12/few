@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# rofi-wallpaper.sh - Select a wallpaper with preview and apply it
+
+WALLPAPER_DIR="$HOME/.config/i3/Wallpaper"
+ROFI_THEME="$HOME/.config/rofi/wallpaper.rasi"
+SYMLINK="$WALLPAPER_DIR/Wallpaper"
+
+[[ ! -d "$WALLPAPER_DIR" ]] && {
+    echo "Directory not found: $WALLPAPER_DIR"
+    exit 1
+}
+
+# Build rofi input with image previews
+ENTRIES=""
+while IFS= read -r -d '' file; do
+    name="$(basename "$file")"
+    ENTRIES+="$name\0icon\x1f$file\n"
+done < <(
+    find "$WALLPAPER_DIR" -maxdepth 1 -type f \
+        \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) \
+        -print0
+)
+
+# Show rofi menu
+SELECTED=$(
+    printf "%b" "$ENTRIES" | rofi \
+        -dmenu \
+        -i \
+        -p "Select Wallpaper: " \
+        -theme "$ROFI_THEME" \
+        -show-icons
+)
+
+[[ -z "$SELECTED" ]] && exit 0
+
+WALLPAPER_PATH="$WALLPAPER_DIR/$SELECTED"
+
+# Update symlink
+ln -sf "$WALLPAPER_PATH" "$SYMLINK"
+
+if command -v rsxiv >/dev/null 2>&1; then
+    rsxiv -B "$SYMLINK"
+elif command -v feh >/dev/null 2>&1; then
+    feh --bg-fill "$SYMLINK"
+elif command -v swaymsg >/dev/null 2>&1; then
+    swaymsg output "*" bg "$SYMLINK" fill
+else
+    echo "⚠️ No wallpaper setter found (install feh or use sway)"
+    exit 1
+fi
+
+notify-send "Wallpaper changed" "$SELECTED" -i "$WALLPAPER_PATH"

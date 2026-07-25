@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+# author: gotbletu (@youtube|github|odysee)
+# desc: copy emoji to clipboard (rofi version)
+
+# Force UTF-8 encoding for the script environment
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+# {{{ emoji list
+mylist() {
+    cat <<'EOF'
+pregnant man |🫃
+lip bite |🫦
+manigga blush |🫪
+speak |🗣📣
+dead skull |💀
+monkey blush |🙈
+angry blush |😊
+blush |☺️
+blush smile |🤭
+speaker |🔊
+crying screaming throwing up |😭
+angry |😠
+angrier |😡
+laughing but losing it |😂
+side eye huh|😒
+bombastic side eye |👀
+sus |🤨
+caught in 4k camera shot |📸
+nah bro what|😐
+mid tf huh |😑
+unhinged jolly|🤪
+brain fried mind blowing |🤯
+mentally gone melting |🫠
+help me oh |🥲
+holding back tears |🥹
+please bro |🥺
+villain era flirty smirk |😏
+evil laugh |😈
+main character |😌
+npc mode no words speech |😶
+nah that’s wild wow |😮
+panik whaaat|😱
+sleep deprived |😴
+tired of it |😮‍💨
+gaslighting myself thinking |🤔
+absolutely not hmm hmph duh |🙄
+embarrassed blushed with astonished and shocked|😳
+slay period nail polish |💅
+bet |🤝
+say less |🤙
+this you |👉
+finger pookie |👉👈
+up only |👆
+down bad |👇
+W |👍
+L |👎
+on god |🙏
+manifesting |🙌
+respectfully |✋
+love fr |❤️
+bestie |💖
+soft launch |💕
+toxic but cute |💔
+situationship |🖤
+healing era |🤍
+lowkey in love |🩷
+obsessed |💘
+clown moment |🤡
+red flag |🚩
+green flag |🟩
+beige flag |🟨
+tea |☕
+spill the tea |🫖
+facts |📠
+cap |🧢
+no cap |🚫🧢
+fire |🔥
+dumpster fire |🗑️🔥
+money moves |💸
+golden retriever energy |🐶
+black cat energy |🐈‍⬛
+feral |🦝
+just a lil guy |🐣
+emotional support animal |🐱
+unserious frog |🐸
+brain rot |🧠
+chronically online |🌐
+touch grass |🌱
+algorithm got me |📱
+irl jump scare |🚪
+pizza time |🍕
+burger moment |🍔
+taco tuesday |🌮
+sushi vibes |🍣
+beer oclock |🍺
+light bulb moment |💡
+locked in |🔒
+work mode |💻
+receipt |🧾
+folder moment |📂
+check |✅
+cross |❌
+sparkles |✨
+star |⭐
+rose |🌹
+cool |😎
+party time |🥳
+angel |😇
+heart eyes |😍
+star eyes |🤩
+blowing kiss |😘
+yummy |😋
+shhhh |🤫
+flex |💪
+waving |👋
+moai sigma |🗿
+EOF
+}
+# }}}
+
+# 1. Show FULL lines (name | emoji) in rofi
+selected_line="$(mylist | rofi -dmenu -i -p "Search Emoji" \
+    -theme-str 'window {width: 40%;} listview {lines: 15;}')"
+
+# Exit if nothing selected
+[[ -z "$selected_line" ]] && exit
+
+# 2. Extract emoji (everything after '|'), trim spaces
+emoji="$(printf "%s" "$selected_line" | cut -d'|' -f2 | tr -d ' ')"
+
+# Optional: extract name too (for notify-send)
+selected_name="$(printf "%s" "$selected_line" | cut -d'|' -f1 | sed 's/[[:space:]]*$//')"
+
+# 3. Copy to clipboard
+if command -v wl-copy >/dev/null 2>&1; then
+    printf "%s" "$emoji" | wl-copy
+elif command -v xclip >/dev/null 2>&1; then
+    printf "%s" "$emoji" | xclip -selection clipboard
+fi
+
+notify-send "Emoji Copied" "The emoji $emoji ($selected_name) has been copied."

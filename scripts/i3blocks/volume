@@ -1,0 +1,30 @@
+#!/bin/bash
+# i3blocks volume blocklet (simple text)
+
+# Get the current volume percentage
+get_volume() {
+    pactl get-sink-volume @DEFAULT_SINK@ | grep -oP '\d+%' | head -1 | tr -d '%'
+}
+
+# Get mute status
+get_mute_status() {
+    pactl get-sink-mute @DEFAULT_SINK@ | grep -oP 'yes|no'
+}
+
+volume=$(get_volume)
+mute=$(get_mute_status)
+
+# Output for i3blocks
+if [ "$mute" = "yes" ]; then
+    echo "MUTE"
+    echo "MUTE"
+    echo "#FF0000"  # Red color for muted
+else
+    echo "${volume}%"
+    echo "${volume}%"
+    if [ "$volume" -lt 20 ]; then
+        echo "#FFFF00"  # Yellow for low volume
+    else
+        echo "#FFFFFF"  # White for normal
+    fi
+fi

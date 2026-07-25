@@ -1,0 +1,56 @@
+#!/bin/bash
+
+MUSIC_DIR="$HOME/Music"
+CACHE_DIR="$HOME/.cache/rofi-music-icons"
+mkdir -p "$CACHE_DIR"
+
+# Function to list all music files
+list_music_files() {
+    find "$1" -type f \( \
+        -iname "*.mp3" -o \
+        -iname "*.flac" -o \
+        -iname "*.ogg" -o \
+        -iname "*.wav" -o \
+        -iname "*.m4a" \
+    \) | sort
+}
+
+# 1. Show categories
+category=$(echo -e "Album\nArtist\nAll Songs" | rofi -dmenu -i -p "Select Category")
+[ -z "$category" ] && exit 0
+
+case "$category" in
+    Album)
+        # Albums = folders directly under MUSIC_DIR
+        albums=$(find "$MUSIC_DIR" -mindepth 1 -maxdepth 2 -type d | sed "s|$MUSIC_DIR/||" | sort | uniq)
+        selected_album=$(echo "$albums" | rofi -dmenu -i -p "Select Album")
+        [ -z "$selected_album" ] && exit 0
+
+        songs=$(list_music_files "$MUSIC_DIR/$selected_album")
+        selected_song=$(echo "$songs" | sed "s|$MUSIC_DIR/||" | rofi -dmenu -i -p "Select Song")
+        [ -z "$selected_song" ] && exit 0
+
+        cmus-remote -f "$MUSIC_DIR/$selected_song"
+        ;;
+
+    Artist)
+        # Artists = assume top-level folders are artist names
+        artists=$(find "$MUSIC_DIR" -mindepth 1 -maxdepth 1 -type d | sed "s|$MUSIC_DIR/||" | sort)
+        selected_artist=$(echo "$artists" | rofi -dmenu -i -p "Select Artist")
+        [ -z "$selected_artist" ] && exit 0
+
+        # List all music files under this artist (including all albums)
+        songs=$(list_music_files "$MUSIC_DIR/$selected_artist")
+        selected_song=$(echo "$songs" | sed "s|$MUSIC_DIR/||" | rofi -dmenu -i -p "Select Song")
+        [ -z "$selected_song" ] && exit 0
+
+        cmus-remote -f "$MUSIC_DIR/$selected_song"
+        ;;
+
+    "All Songs")
+        all_songs=$(list_music_files "$MUSIC_DIR")
+        selected=$(echo "$all_songs" | sed "s|$MUSIC_DIR/||" | rofi -dmenu -i -p "Select Song")
+        [ -z "$selected" ] && exit 0
+        cmus-remote -f "$MUSIC_DIR/$selected"
+        ;;
+esac

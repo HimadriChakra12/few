@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# --- DBus fix for i3blocks ---
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+
+FORMAT_FILE="/tmp/i3blocks_mus_format"
+[ ! -f "$FORMAT_FILE" ] && echo "0" >"$FORMAT_FILE"
+FORMAT=$(cat "$FORMAT_FILE")
+
+if [ "$FORMAT" -eq 0 ]; then
+    META="{{artist}} - {{title}}"
+else
+    META="{{album}} - {{title}}"
+fi
+
+OUTPUT=""
+
+# Loop through ALL players, pick first Playing
+for PLAYER in $(playerctl -l 2>/dev/null); do
+    if [ "$(playerctl --player="$PLAYER" status 2>/dev/null)" = "Playing" ]; then
+        OUTPUT="> $(playerctl --player="$PLAYER" metadata --format "$META")"
+        break
+    fi
+done
+
+# Fallback: show paused cmus if nothing is playing
+if [ -z "$OUTPUT" ]; then
+    if playerctl --player=cmus status 2>/dev/null | grep -q Paused; then
+        OUTPUT="|| $(playerctl --player=cmus metadata --format "$META")"
+    else
+        OUTPUT="[] nothing playing"
+    fi
+fi
+
+echo "$OUTPUT"
+
+case "$BLOCK_BUTTON" in
+1) echo "$(((FORMAT + 1) % 2))" >"$FORMAT_FILE" ;;
+esac

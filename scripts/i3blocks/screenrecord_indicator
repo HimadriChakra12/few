@@ -1,0 +1,33 @@
+#!/bin/bash
+# Simple i3blocks indicator
+
+PID_FILE="/tmp/screenrecord_pid_${USER}"
+
+if [[ -f "$PID_FILE" ]] && kill -0 $(cat "$PID_FILE" 2>/dev/null) 2>/dev/null; then
+  # Get duration
+  pid=$(cat "$PID_FILE")
+  start_time=$(ps -o lstart= -p "$pid" 2>/dev/null | head -n1)
+  
+  if [[ -n "$start_time" ]]; then
+    start_epoch=$(date -d "$start_time" +%s 2>/dev/null)
+    current_epoch=$(date +%s)
+    
+    if [[ -n "$start_epoch" ]]; then
+      duration=$((current_epoch - start_epoch))
+      minutes=$((duration / 60))
+      seconds=$((duration % 60))
+      
+      printf "REC: %02d:%02d\n" $minutes $seconds
+      echo "REC"
+      exit 0
+    fi
+  fi
+  
+  echo "REC"
+  echo ""
+  echo "#FF0000"
+else
+  # Not recording
+  echo ""
+  echo ""
+fi

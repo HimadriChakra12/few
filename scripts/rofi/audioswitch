@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+
+# Audio Port Switcher for PipeWire/PulseAudio
+# Allows switching between ports (headphones, speakers) on the same sink
+
+set -euo pipefail
+
+# Check for required commands
+for cmd in pactl rofi notify-send; do
+    if ! command -v "$cmd" &> /dev/null; then
+        echo "Error: $cmd is not installed" >&2
+        exit 1
+    fi
+done
+
+# Get the default sink name
+get_default_sink() {
+    pactl get-default-sink
+}
+
+# Parse sink information and extract ports
+get_sink_ports() {
+    local sink_name="$1"
+    local output=""
+    local in_ports_section=false
+    local current_port=""
+    local port_desc=""
+    local is_available=""
+    
+    while IFS= read -r line; do
+        # Check if we're entering the Ports section
+        if [[ "$line" =~ ^[[:space:]]*Ports: ]]; then
+            in_ports_section=true
+            continue
+        fi
+        
+        # Check if we're leaving the Ports section (next major section starts)
+        if [[ "$in_ports_section" == true ]] && [[ "$line" =~ ^[[:space:]]*[A-Z][a-z]+: ]] && [[ ! "$line" =~ ^[[:space:]]*Part ]]; then
+            break
+        fi
+        
+        # Parse port entries
+        if [[ "$in_ports_section" == true ]]; then
+            # Port name line (indented, ends with colon)
+            if [[ "$line" =~ ^[[:space:]]+([a-z0-9-]+):[[:space:]]*(.+)$ ]]; then
+                # Save previous port if exists
+                if [[ -n "$current_port" ]] && [[ "$is_available" != "not available" ]]; then
+                    output+="${current_port}|${port_desc}"$'\n'
+                fi
+                
+                current_port="${BASH_REMATCH[1]}"
+                port_desc="${BASH_REMATCH[2]}"
+                is_available=""
+            # Availability line
+            elif [[ "$line" =~ availability[[:space:]]+([a-z]+) ]]; then
+                is_available="${BASH_REMATCH[1]}"
+            fi
+        fi
+    done < <(pactl list sinks)
+    
+    # Don't forget the last port
+    if [[ -n "$current_port" ]] && [[ "$is_available" != "not available" ]]; then
+        output+="${current_port}|${port_desc}"$'\n'
+    fi
+    
+    echo -n "$output"
+}
+
+# Get the active port for a sink
+get_active_port() {
+    local sink_name="$1"
+    pactl list sinks | awk -v sink="$sink_name" '
+        /Name:/ { current_sink = $2 }
+        current_sink == sink && /Active Port:/ { print $3; exit }
+    '
+}
+
+# Force all applications to reconnect by corking and uncorking
+force_stream_reconnect() {
+    local sink_name="$1"
+    
+    # Get all sink input IDs that are currently playing
+    local sink_inputs
+    sink_inputs=$(pactl list short sink-inputs | awk '{print $1}')
+    
+    if [[ -z "$sink_inputs" ]]; then
+        return
+    fi
+    
+    # Cork (pause) all streams
+    while IFS= read -r input_id; do
+        [[ -z "$input_id" ]] && continue
+        pactl suspend-sink-input "$input_id" 1 2>/dev/null || true
+    done <<< "$sink_inputs"
+    
+    sleep 0.2
+    
+    # Uncork (resume) all streams - this forces reconnection
+    while IFS= read -r input_id; do
+        [[ -z "$input_id" ]] && continue
+        pactl suspend-sink-input "$input_id" 0 2>/dev/null || true
+    done <<< "$sink_inputs"
+}
+
+# Main function
+main() {
+    # Get default sink
+    local sink_name
+    sink_name=$(get_default_sink)
+    
+    if [[ -z "$sink_name" ]]; then
+        notify-send "Audio Port Switcher" "No default sink found" -u critical
+        exit 1
+    fi
+    
+    # Get available ports
+    local ports_data
+    ports_data=$(get_sink_ports "$sink_name")
+    
+    if [[ -z "$ports_data" ]]; then
+        notify-send "Audio Port Switcher" "No ports found for sink: $sink_name" -u critical
+        exit 1
+    fi
+    
+    # Get current active port
+    local active_port
+    active_port=$(get_active_port "$sink_name")
+    
+    # Build rofi menu
+    local rofi_input=""
+    local port_names=()
+    local port_descriptions=()
+    
+    while IFS='|' read -r port_name port_desc; do
+        [[ -z "$port_name" ]] && continue
+        
+        port_names+=("$port_name")
+        port_descriptions+=("$port_desc")
+        
+        # Mark active port with indicator
+        if [[ "$port_name" == "$active_port" ]]; then
+            rofi_input+="✓ ${port_desc}"$'\n'
+        else
+            rofi_input+="  ${port_desc}"$'\n'
+        fi
+    done <<< "$ports_data"
+    
+    # Show rofi menu
+    local selected
+    selected=$(echo -n "$rofi_input" | rofi -dmenu -i -p "Select Audio Output" -no-custom -format "i")
+    
+    # Check if user cancelled
+    if [[ -z "$selected" ]]; then
+        exit 0
+    fi
+    
+    # Get the selected port name
+    local selected_port="${port_names[$selected]}"
+    local selected_desc="${port_descriptions[$selected]}"
+    
+    # Switch to the selected port
+    if pactl set-sink-port "$sink_name" "$selected_port"; then
+        # Force all streams to reconnect to pick up the new port
+        force_stream_reconnect "$sink_name"
+        
+        notify-send "Audio Output Switched" "Now using: $selected_desc" -i audio-card
+    else
+        notify-send "Audio Port Switcher" "Failed to switch to: $selected_desc" -u critical
+    fi
+}
+
+main "$@"

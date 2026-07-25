@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+# ===================== CONFIG =====================
+BROWSER_SCRIPT="$HOME/riyarchi/bin/browser"
+HISTORY_FILE="$HOME/.cache/rofi-url-history"
+ROFI_CMD="rofi -dmenu -i -p URL"
+
+# Define website list (Name|Url1|Url2...)
+WEBSITES=(
+    "unixporn|https://reddit.com/r/unixporn"
+    "startpages|https://reddit.com/r/startpages"
+    "commandline|https://reddit.com/r/commandline"
+    "archlinux|https://reddit.com/r/archlinux"
+    "Monkeytype|http://localhost:8080|https://monkeytype.com"
+    "BentoPDF|https://localhost:3000"
+    "Photopea|https://localhost:8887"
+    "Discord|https://discord.com/channels/@me"
+    "Instagram|https://instagram.com"
+    "Chatgpt|https://chatgpt.com"
+)
+
+# ==================================================
+
+mkdir -p "$(dirname "$HISTORY_FILE")"
+
+notify() {
+    notify-send "Rofi URL Handler" "$1"
+}
+
+get_clipboard() {
+    if command -v wl-paste &>/dev/null; then
+        wl-paste
+    else
+        xclip -selection clipboard -o
+    fi
+}
+
+# ===================== INPUT ======================
+# Get last 3 unique non-blank URLs from history
+HISTORY=$(tac "$HISTORY_FILE" 2>/dev/null | awk '!seen[$0]++ && $0!=""' | head -n 3 | tac)
+
+# Build the menu
+MENU_ITEMS=()
+for w in "${WEBSITES[@]}"; do
+    MENU_ITEMS+=("${w%%|*}") # scripted websites first
+done
+MENU_ITEMS+=("📋 Paste from clipboard") # clipboard first
+for h in $HISTORY; do
+    MENU_ITEMS+=("$h") # then history
+done
+
+# Show menu
+URL=$(printf "%s\n" "${MENU_ITEMS[@]}" | $ROFI_CMD)
+[ -z "$URL" ] && exit 0
+
+# Paste from clipboard if chosen
+if [[ "$URL" == "📋 Paste from clipboard" ]]; then
+    URL=$(get_clipboard)
+fi
+
+# Save to history (ignore empty and avoid duplicates)
+if [ -n "$URL" ] && ! grep -qxF "$URL" "$HISTORY_FILE" 2>/dev/null; then
+    echo "$URL" >>"$HISTORY_FILE"
+fi
+
+# ===================== LOGIC ======================
+# Check if the selection is in our scripted websites
+MATCHED_URL=""
+for w in "${WEBSITES[@]}"; do
+    NAME="${w%%|*}"
+    if [[ "$URL" == "$NAME" ]]; then
+        # Iterate URLs and pick the first reachable one
+        IFS='|' read -ra URLS <<<"$w"
+        for u in "${URLS[@]:1}"; do
+            if [ -n "$u" ] && curl --head --silent --fail "$u" >/dev/null 2>&1; then
+                MATCHED_URL="$u"
+                break
+            fi
+        done
+        # If none reachable, pick the first URL anyway
+        [ -z "$MATCHED_URL" ] && MATCHED_URL="${URLS[1]}"
+        break
+    fi
+done
+
+# Open final URL in browser
+FINAL_URL="${MATCHED_URL:-$URL}"
+[ -n "$FINAL_URL" ] && "$BROWSER_SCRIPT" "$FINAL_URL"

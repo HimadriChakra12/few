@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=vswm
+Comment=Very Simple Window Manager
+Exec=/usr/bin/vswm
+Type=Application
+DesktopNames=vswm

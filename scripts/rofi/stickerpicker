@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# rofi-sticker.sh - Select a sticker and copy to clipboard
+
+STICKER_DIR1="$HOME/stickers-hspe/"
+STICKER_DIR2="$HOME/stickers"
+ROFI_THEME="$HOME/.config/rofi/sticker.rasi"
+
+if [[ -d "$STICKER_DIR1" ]]; then
+    STICKER_DIR="$STICKER_DIR1"
+elif [[ -d "$STICKER_DIR2" ]]; then
+    STICKER_DIR="$STICKER_DIR2"
+else
+    echo "❌ No sticker directory found"
+    exit 1
+fi
+
+# Build rofi input with icons (image preview)
+ENTRIES=""
+while IFS= read -r -d '' file; do
+    name="$(basename "$file")"
+    ENTRIES+="$name\0icon\x1f$file\n"
+done < <(find "$STICKER_DIR" -maxdepth 1 -type f -print0)
+
+STICKER=$(printf "%b" "$ENTRIES" | rofi \
+    -dmenu \
+    -i \
+    -p "Select Sticker: " \
+    -theme "$ROFI_THEME" \
+    -show-icons)
+
+[[ -z "$STICKER" ]] && exit 0
+
+STICKER_PATH="$STICKER_DIR/$STICKER"
+
+# Copy to clipboard
+if command -v wl-copy >/dev/null 2>&1; then
+    wl-copy <"$STICKER_PATH"
+elif command -v xclip >/dev/null 2>&1; then
+    xclip -selection clipboard -t image/png -i "$STICKER_PATH"
+else
+    echo "⚠️ No clipboard tool found (install wl-clipboard or xclip)"
+    exit 1
+fi
+
+notify-send "Sticker copied" "$STICKER" -i "$STICKER_PATH"

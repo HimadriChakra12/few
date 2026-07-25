@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+# -------- CONFIG --------
+source "$HOME/winegames/env.sh"
+
+games=(
+  "The Punisher:$HOME/Games/The Punisher/pun.exe"
+  "GTA SA:$HOME/Games/Gta San Andreas/gta-sa.exe"
+  "Need For Speed:$HOME/Games/Need for Speed - Most Wanted/speed.exe"
+  "Blur:$HOME/Games/BLUR/Blur.exe"
+  "Darkest Of Days:$HOME/Games/Darkest of Days/darkestofdays.exe"
+  "Aliens VS Predator 2:$HOME/Games/Aliens versus Predator 2/AVP2.exe"
+  "Spider Man:$HOME/Games/Spider-Man Web of Shadows/image/pc/Spider-Man Web of Shadows.exe"
+  "Nitro Family:$HOME/winegames/drive_c/Program Files (x86)/NitroFamily/NitroFamily.exe"
+)
+
+WINE_CMD="$HOME/winegames/run-game"
+ROFI_CMD="rofi -dmenu -i -p 'Games'"
+
+# -------- SCRIPT --------
+
+# Extract only names for rofi
+choice=$(printf "%s\n" "${games[@]}" | cut -d: -f1 | $ROFI_CMD)
+
+# Exit if nothing selected
+[[ -z "$choice" ]] && exit 0
+
+# Find matching entry and launch
+for entry in "${games[@]}"; do
+  name="${entry%%:*}"
+  path="${entry#*:}"
+
+  if [[ "$name" == "$choice" ]]; then
+    game_dir="$(dirname "$path")"
+    game_exe="$(basename "$path")"
+
+    cd "$game_dir" || exit 1
+    if [[ "$game_exe" == "NitroFamily.exe" ]]; then
+        source "$HOME/witro/env.sh"
+        exec $WINE_CMD -v 1920x1080 "$game_exe"
+    else
+        exec $WINE_CMD "$game_exe"
+    fi
+  fi
+done

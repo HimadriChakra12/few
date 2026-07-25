@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Get the current volume and extract only the integer value
+current_volume=$(pactl get-sink-volume @DEFAULT_SINK@ | awk '{print $5}' | sed 's/%//')
+
+# Check if current_volume is an integer and if it's less than 120
+if [[ "$current_volume" =~ ^[0-9]+$ ]]; then
+    if [ "$current_volume" -lt 150 ]; then
+        pactl set-sink-volume @DEFAULT_SINK@ +10%
+    else
+        # If the volume is 120% or more, notify the user
+        notify-send "Volume is already at 150%" -t 350
+    fi
+else
+    echo "Error: Couldn't retrieve valid volume."
+fi

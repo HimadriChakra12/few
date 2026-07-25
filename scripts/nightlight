@@ -1,0 +1,15 @@
+#!/bin/bash
+
+STATE_FILE="$HOME/.cache/redshift_on"
+TEMP="4900"
+
+if [ ! -f "$STATE_FILE" ]; then
+    # Turn redshift ON
+    redshift -O $TEMP >/dev/null 2>&1
+    touch "$STATE_FILE"
+else
+    # Turn redshift OFF
+    redshift -x >/dev/null 2>&1
+    rm "$STATE_FILE"
+fi
+

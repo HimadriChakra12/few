@@ -1,0 +1,23 @@
+#!/bin/bash
+
+MUSIC_DIR="/home/himadri/Music"
+
+selected=$(find "$MUSIC_DIR" -type f \( \
+  -iname "*.mp3" -o \
+  -iname "*.flac" -o \
+  -iname "*.ogg" -o \
+  -iname "*.wav" -o \
+  -iname "*.m4a" \
+\) | sed "s|^$MUSIC_DIR/||" | sort | rofi -dmenu -i -p "Music")
+
+[ -z "$selected" ] && exit 0
+
+#if command -v deadbeef >/dev/null; then
+#    FILE="$MUSIC_DIR/$selected"
+#    deadbeef --queue "$FILE"
+#    deadbeef --play
+#else
+#    cmus-remote -f "$MUSIC_DIR/$selected"
+#fi
+
+    mpv -f "$MUSIC_DIR/$selected"

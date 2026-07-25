@@ -1,0 +1,13 @@
+#!/bin/bash
+
+declare -A ICONS=(
+  [performance]="[]"
+  [balanced]="{}"
+  [power-saver]="()"
+)
+
+# Get current power profile
+POWER=$(powerprofilesctl get)
+
+# Output icon for i3blocks
+echo "${ICONS}"
