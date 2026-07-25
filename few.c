@@ -57,6 +57,8 @@ static Atom net_active;
 #define ALT Mod1Mask
 #define SUPER Mod4Mask
 #define BARHEIGHT 20
+#define BARBG "#1d2021"
+#define BARFG "#ebdbb2"
 
 static Key keys[] = {
     { ALT, XK_Return, launch, "st" },
@@ -390,9 +392,20 @@ void windowlist(char *dest, size_t size)
 
 void barinit(void)
 {
+    Colormap colormap = DefaultColormap(display, screen);
+    XColor bg, fg, exact;
+    unsigned long bgpixel = BlackPixel(display, screen);
+    unsigned long fgpixel = WhitePixel(display, screen);
+
+    if (XAllocNamedColor(display, colormap, BARBG, &bg, &exact))
+        bgpixel = bg.pixel;
+
+    if (XAllocNamedColor(display, colormap, BARFG, &fg, &exact))
+        fgpixel = fg.pixel;
+
     XSetWindowAttributes attributes = {
         .override_redirect = True,
-        .background_pixel = BlackPixel(display, screen),
+        .background_pixel = bgpixel,
         .event_mask = ExposureMask,
     };
 
@@ -404,7 +417,7 @@ void barinit(void)
             CWOverrideRedirect | CWBackPixel | CWEventMask, &attributes);
 
     gc = XCreateGC(display, barwin, 0, 0);
-    XSetForeground(display, gc, WhitePixel(display, screen));
+    XSetForeground(display, gc, fgpixel);
 
     if (font)
         XSetFont(display, gc, font->fid);
