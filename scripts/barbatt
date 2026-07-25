@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+BATTERY=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -n1)
+
+# Optional: Read charging status
+STATUS=$(cat /sys/class/power_supply/BAT*/status 2>/dev/null | head -n1)
+
+echo "$BATTERY [$STATUS]"
