@@ -45,8 +45,8 @@ static Atom net_active;
 static Key keys[] = {
     { ALT, XK_Return, launch, "st" },
     { ALT, XK_space, launch, "rofi -show drun" },
-    { ALT, XK_b, launch, "helium-browser" },
-    { ALT, XK_p, launch, "shot" },
+    { ALT, XK_b, launch, "firefox" },
+    { SUPER | ShiftMask, XK_s, launch, "shot" },
     { SUPER, XK_e, launch, "rdfm"},
     { SUPER, XK_p, launch, "bash $HOME/pkg/few/scripts/rofi/powermenu"},
     { SUPER, XK_period, launch, "bash $HOME/pkg/few/scripts/rofi/wallpaper"},

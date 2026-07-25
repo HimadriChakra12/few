@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # rofi-wallpaper.sh - Select a wallpaper with preview and apply it
 
-WALLPAPER_DIR="$HOME/.config/i3/Wallpaper"
+WALLPAPER_DIR="$HOME/pkg/few/Wallpaper"
 ROFI_THEME="$HOME/.config/rofi/wallpaper.rasi"
 SYMLINK="$WALLPAPER_DIR/Wallpaper"
 

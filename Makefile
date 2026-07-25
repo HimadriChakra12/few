@@ -6,23 +6,23 @@ PREFIX ?= /usr
 BINDIR ?= $(PREFIX)/bin
 XSESSIONDIR ?= $(PREFIX)/share/xsessions
 
-all: vswm
+all: few
 
-vswm: vswm.o
+few: few.o
 	$(CC) -o $@ $^ $(LIBS) $(LDFLAGS)
 
 install: all
 	install -d $(DESTDIR)$(BINDIR)
-	install -m755 vswm $(DESTDIR)$(BINDIR)
+	install -m755 few $(DESTDIR)$(BINDIR)
 
 	install -d $(DESTDIR)$(XSESSIONDIR)
-	install -m644 vswm.desktop $(DESTDIR)$(XSESSIONDIR)
+	install -m644 few.desktop $(DESTDIR)$(XSESSIONDIR)
 
 uninstall:
-	rm -f $(DESTDIR)$(BINDIR)/vswm
-	rm -f $(DESTDIR)$(XSESSIONDIR)/vswm.desktop
+	rm -f $(DESTDIR)$(BINDIR)/few
+	rm -f $(DESTDIR)$(XSESSIONDIR)/few.desktop
 
 clean:
-	rm -f vswm *.o
+	rm -f few *.o
 
 .PHONY: all install uninstall clean
